@@ -3,7 +3,24 @@ require "db/pool"
 
 module DB
   class Pool(T)
-    getter max_pool_size, checkout_timeout
+    getter checkout_timeout
+
+    # Replaces Pool::Stats
+    record Statistics,
+      open_connections : Int32,
+      idle_connections : Int32,
+      in_flight_connections : Int32,
+      max_connections : Int32
+
+    # Overridden to use the new struct
+    def stats
+      Statistics.new(
+        open_connections: @total.size,
+        idle_connections: @idle.size,
+        in_flight_connections: @inflight,
+        max_connections: @max_pool_size,
+      )
+    end
   end
 end
 
@@ -49,7 +66,9 @@ class Redis::PooledClient
     conn = begin
       @pool.checkout
     rescue DB::PoolTimeout
-      raise Redis::PoolTimeoutError.new("No free connection (used #{@pool.stats.open_connections} of #{@pool.max_pool_size}) after timeout of #{@pool.checkout_timeout}s")
+      stats = @pool.stats
+
+      raise Redis::PoolTimeoutError.new("No free connection (used #{stats.open_connections} of #{stats.max_connections}) after timeout of #{@pool.checkout_timeout}s")
     end
 
     begin

@@ -312,6 +312,18 @@ class Redis
     end
   end
 
+  # Provided for compatibility with DB::Pool
+  #
+  # :nodoc:
+  def before_checkout
+  end
+
+  # Provided for compatibility with DB::Pool
+  #
+  # :nodoc:
+  def after_release
+  end
+
   # :nodoc:
   private def with_reconnect
     yield

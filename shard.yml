@@ -5,5 +5,5 @@ authors:
   - Stefan Wille <nospam-post@nospam-stefanwille-dot-com>
 
 dependencies:
-  pool:
-    github: ysbaddaden/pool
+  db:
+    github: crystal-lang/crystal-db

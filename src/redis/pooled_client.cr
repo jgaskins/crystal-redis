@@ -1,4 +1,11 @@
-require "pool/connection"
+require "db"
+require "db/pool"
+
+module DB
+  class Pool(T)
+    getter max_pool_size, checkout_timeout
+  end
+end
 
 # A Redis client object that can be shared across multiple fibers.
 # It is backed by a connection pool of `Redis` instances and will automatically allocate and free these instances from/to the pool, per command.
@@ -27,7 +34,7 @@ class Redis::PooledClient
   # * pool_size - the number of `Redis` to hold in the connection pool.
   # * pool_timeout - the time to wait for a `Redis` instance to become available from the pool before dying with `Redis::PoolTimeoutError`.
   def initialize(*args, pool_size = 5, pool_timeout = 5.0, **args2)
-    @pool = ConnectionPool(Redis).new(capacity: pool_size, timeout: pool_timeout) do
+    @pool = DB::Pool(Redis).new(max_pool_size: pool_size, checkout_timeout: pool_timeout) do
       Redis.new(*args, **args2)
     end
   end
@@ -41,14 +48,14 @@ class Redis::PooledClient
   private def with_pool_connection
     conn = begin
       @pool.checkout
-    rescue IO::Timeout
-      raise Redis::PoolTimeoutError.new("No free connection (used #{@pool.size} of #{@pool.capacity}) after timeout of #{@pool.timeout}s")
+    rescue DB::PoolTimeout
+      raise Redis::PoolTimeoutError.new("No free connection (used #{@pool.stats.open_connections} of #{@pool.max_pool_size}) after timeout of #{@pool.checkout_timeout}s")
     end
 
     begin
       yield(conn)
     ensure
-      @pool.checkin(conn)
+      @pool.release(conn)
     end
   end
 

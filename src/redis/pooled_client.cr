@@ -51,7 +51,12 @@ class Redis::PooledClient
   # * pool_size - the number of `Redis` to hold in the connection pool.
   # * pool_timeout - the time to wait for a `Redis` instance to become available from the pool before dying with `Redis::PoolTimeoutError`.
   def initialize(*args, pool_size = 5, pool_timeout = 5.0, **args2)
-    @pool = DB::Pool(Redis).new(max_pool_size: pool_size, checkout_timeout: pool_timeout) do
+    @pool = DB::Pool(Redis).new(
+      initial_pool_size: 0,
+      max_pool_size: pool_size,
+      max_idle_pool_size: pool_size,
+      checkout_timeout: pool_timeout,
+    ) do
       Redis.new(*args, **args2)
     end
   end
